@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Startup Monopoly</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: booth screen — Monopoly ring board (4x4) on the left, founder's dashboard + live card on the right; stacks on phones.
+   Single deliberate look (RISE "shopfront" world: sunburst cream, navy ink, orange coin) — colors set explicitly for both host themes. */
+:root{
+  --ink:#1c1f3f;          /* navy outline ink */
+  --paper:#fff6e2;        /* cream card */
+  --sun:#fcd58a;          /* sunburst base */
+  --sun-deep:#f9c165;
+  --coin:#f47b20;         /* RISE orange */
+  --mint:#3fb58f;         /* awning teal */
+  --berry:#d8452f;        /* risk red */
+  --sky:#2f5bea;          /* product blue */
+  --muted:#6a6377;
+  --display:"Anton","Impact","Arial Narrow Bold",sans-serif;
+  --body:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;font-family:var(--body);color:var(--ink);font-size:15px;line-height:1.45;
+  background:
+    radial-gradient(circle,rgba(244,123,32,.16) 1.3px,transparent 1.8px) 0 0/16px 16px,
+    repeating-conic-gradient(from 0deg at 50% 30%,rgba(255,255,255,.28) 0 6deg,transparent 6deg 14deg),
+    radial-gradient(circle at 50% 30%,#ffe7b3,var(--sun-deep) 80%);
+  background-color:var(--sun);
+  background-attachment:fixed;
+}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 32px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,4.4vw,48px);line-height:1;margin:0;letter-spacing:.5px;
+  color:var(--paper);-webkit-text-stroke:2px var(--ink);text-shadow:4px 4px 0 var(--ink)}
+.brand h1 b{color:var(--coin);font-weight:400}
+.tag{font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;background:var(--ink);color:var(--sun);padding:4px 10px;border-radius:999px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:2px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+/* main grid */
+.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+
+/* board */
+.board{position:relative;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px;
+  aspect-ratio:1/1;max-width:100%;background:var(--ink);padding:8px;border-radius:22px;box-shadow:8px 8px 0 rgba(28,31,63,.35)}
+.cell{position:relative;background:var(--paper);border-radius:12px;padding:8px 9px;display:flex;flex-direction:column;justify-content:space-between;min-width:0;overflow:hidden}
+.cell .stripe{position:absolute;inset:0 0 auto 0;height:9px}
+.cell .num{font-size:11px;font-weight:700;color:var(--muted);margin-top:8px}
+.cell .nm{font-family:var(--display);font-size:clamp(13px,1.7vw,20px);line-height:1.05;letter-spacing:.3px}
+.cell .sub{font-size:clamp(9px,1vw,11px);color:var(--muted);font-weight:600;line-height:1.2}
+.cell.corner{background:var(--coin);color:var(--paper)}
+.cell.corner .num,.cell.corner .sub{color:#fff3dc}
+.cell.corner.risk{background:var(--berry)}
+.cell.corner.pitch{background:var(--sky)}
+.cell.corner.start{background:var(--mint)}
+.cell.hit{animation:hit .6s ease}
+@keyframes hit{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+.center{grid-column:2/4;grid-row:2/4;background:
+  repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.35) 0 7deg,transparent 7deg 15deg),var(--sun);
+  border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center}
+.dice{width:clamp(64px,10vw,96px);aspect-ratio:1;background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink);
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:12%}
+.dice i{width:62%;aspect-ratio:1;border-radius:50%;background:var(--ink);place-self:center;visibility:hidden}
+.dice i.on{visibility:visible}
+.dice.roll{animation:shake .5s linear infinite}
+@keyframes shake{0%{transform:rotate(0)}25%{transform:rotate(14deg)}50%{transform:rotate(-10deg)}75%{transform:rotate(8deg)}100%{transform:rotate(0)}}
+.rollbtn{font-family:var(--display);font-size:clamp(18px,2.2vw,24px);letter-spacing:1px;background:var(--coin);color:var(--paper);border:3px solid var(--ink);
+  border-radius:14px;padding:8px 22px;box-shadow:4px 4px 0 var(--ink)}
+.rollbtn:disabled{opacity:.45;cursor:not-allowed}
+.rollbtn:not(:disabled):active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.rolls{display:flex;gap:6px}
+.rolls span{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);background:var(--paper)}
+.rolls span.used{background:var(--ink)}
+.center small{font-weight:700;font-size:12px}
+
+/* token */
+.token{position:absolute;width:clamp(26px,3.6vw,38px);aspect-ratio:1;border-radius:50%;background:var(--coin);border:3px solid var(--ink);
+  box-shadow:2px 3px 0 var(--ink);display:grid;place-items:center;font-family:var(--display);color:var(--paper);font-size:clamp(12px,1.6vw,17px);
+  transition:left .22s ease,top .22s ease;z-index:3;pointer-events:none}
+.token::after{content:"";position:absolute;inset:3px;border-radius:50%;border:1.5px dashed rgba(255,246,226,.8)}
+
+/* side panel */
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--ink);padding:16px 18px}
+.dash{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.meters{display:flex;flex-direction:column;gap:9px;min-width:0}
+.meter .row{display:flex;justify-content:space-between;font-weight:700;font-size:13px}
+.meter .row span:last-child{font-variant-numeric:tabular-nums}
+.bar{height:14px;border:2px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden}
+.bar b{display:block;height:100%;border-radius:999px;transition:width .5s ease}
+.delta{font-size:12px;font-weight:800;margin-left:6px}
+.delta.up{color:#178a62}.delta.down{color:var(--berry)}
+.coinbox{text-align:center}
+.bigcoin{width:92px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd87a,#f9a83a 60%,#e8811c);border:4px solid var(--ink);
+  box-shadow:3px 4px 0 var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:38px;color:var(--ink);position:relative}
+.bigcoin::after{content:"";position:absolute;inset:7px;border-radius:50%;border:2px dotted var(--ink);opacity:.5}
+.bigcoin.pop{animation:hit .5s ease}
+.coinbox small{display:block;margin-top:6px;font-weight:800;font-size:11px;letter-spacing:1.2px;text-transform:uppercase}
+.hint{font-size:12px;color:var(--muted);margin:10px 0 0}
+
+/* card */
+.card{position:relative;overflow:hidden}
+.card .kicker{display:inline-block;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--paper);padding:3px 10px;border-radius:999px;margin-bottom:8px}
+.card h2{font-family:var(--display);font-weight:400;font-size:clamp(22px,2.4vw,28px);line-height:1.15;margin:0 0 8px;text-wrap:balance;letter-spacing:.2px}
+.card p{margin:0 0 10px}
+.opts{display:grid;gap:10px;margin-top:6px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;text-align:left;background:#fff;border:2.5px solid var(--ink);border-radius:14px;padding:12px 14px;
+  font-size:15px;font-weight:600;color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.opt:hover{background:#fff1d6}
+.opt .k{font-family:var(--display);font-size:22px;width:38px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--paper)}
+.opt.chosen{background:#ffe2c4;box-shadow:inset 0 0 0 2px var(--coin),3px 3px 0 var(--ink)}
+.opt:disabled{cursor:default}
+.opt:disabled:not(.chosen){opacity:.45}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.btn{border:2.5px solid var(--ink);border-radius:12px;padding:9px 16px;font-weight:800;font-size:14px;background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.orange{background:var(--coin);color:var(--paper)}
+.callout{border:2px dashed var(--ink);border-radius:12px;padding:10px 12px;background:#fffdf6;margin-top:10px;font-size:14px}
+.callout b{display:block;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:3px}
+.effects{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.eff{font-weight:800;font-size:13px;border-radius:999px;padding:3px 10px;border:2px solid var(--ink);background:#fff}
+.eff.up{background:#d9f3e8}.eff.down{background:#fbe0da}
+.quote{font-size:16px;font-weight:600;border-left:5px solid var(--coin);padding:4px 0 4px 12px;margin:6px 0 14px}
+.namein{display:flex;gap:8px;flex-wrap:wrap}
+.namein input{flex:1 1 180px;min-width:0;border:2.5px solid var(--ink);border-radius:12px;padding:10px 12px;font:inherit;font-weight:600;background:#fff;color:var(--ink)}
+.rules{margin:12px 0 0;padding-left:18px;font-size:14px}
+.rules li{margin:3px 0}
+
+/* end screen */
+.score{display:grid;gap:6px;margin:8px 0 12px}
+.score div{display:flex;justify-content:space-between;border-bottom:1.5px dotted rgba(28,31,63,.3);padding:4px 0;font-weight:600}
+.score div span:last-child{font-variant-numeric:tabular-nums;font-weight:800}
+.score .total{border-bottom:none;font-family:var(--display);font-size:22px;font-weight:400}
+.prize{background:var(--ink);color:var(--paper);border-radius:14px;padding:14px 16px;margin-top:6px}
+.prize small{display:block;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--sun)}
+.prize strong{font-family:var(--display);font-weight:400;font-size:26px;letter-spacing:.4px}
+
+/* leaderboard + settings */
+.lb ol{margin:6px 0 0;padding-left:0;list-style:none}
+.lb li{display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-weight:600}
+.lb li span:last-child{font-variant-numeric:tabular-nums;font-weight:800}
+.lb h3,.set h3{font-family:var(--display);font-weight:400;font-size:20px;margin:0;letter-spacing:.3px}
+.set .tier{display:grid;grid-template-columns:70px minmax(0,1fr);gap:8px;margin-top:8px;align-items:center}
+.set input{border:2px solid var(--ink);border-radius:10px;padding:7px 9px;font:inherit;background:#fff;color:var(--ink);min-width:0}
+.log{font-size:13px;color:var(--muted);margin-top:8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Startup <b>Monopoly</b></h1>
+      <span class="tag" id="tagline">RISE Experience Day</span>
+    </div>
+    <div class="toolbar">
+      <button class="chip" id="langVi" aria-pressed="true">Tiếng Việt</button>
+      <button class="chip" id="langEn" aria-pressed="false">English</button>
+      <button class="chip" id="newBtn">Người chơi mới</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section aria-label="Board">
+      <div class="board" id="board">
+        <div class="center">
+          <div class="dice" id="dice" aria-live="polite"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <button class="rollbtn" id="rollBtn">Gieo xúc xắc</button>
+          <div class="rolls" id="rolls" aria-label="Rolls left"><span></span><span></span><span></span></div>
+          <small id="rollInfo">Còn 3 lượt gieo</small>
+        </div>
+        <div class="token" id="token" aria-hidden="true">R</div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="panel dash">
+        <div class="meters" id="meters"></div>
+        <div class="coinbox">
+          <div class="bigcoin" id="coinNum">0</div>
+          <small id="coinLbl">Startup Coins</small>
+        </div>
+      </div>
+      <div class="panel card" id="card"></div>
+      <div class="panel lb" id="leader"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+/* ---------- content ---------- */
+const UI={
+ vi:{roll:"Gieo xúc xắc",left:n=>`Còn ${n} lượt gieo`,done:"Hết lượt gieo",cust:"Khách hàng",cash:"Tiền",rep:"Uy tín",coins:"Startup Coins",
+   newp:"Người chơi mới",start:"Bắt đầu",namePh:"Tên startup của bạn (không bắt buộc)",
+   intro:"Bạn sẽ trở thành nhà sáng lập một startup và cần đưa ra những quyết định kinh doanh để phát triển doanh nghiệp của mình. Hãy thử xem bạn có thể kiếm được bao nhiêu Startup Coins nhé!",
+   welcome:"Chào mừng, Founder!",
+   rules:["Bạn có 3 lượt gieo xúc xắc.","Dừng ở ô tình huống: chọn A hoặc B và giải thích ngắn lý do.","Cân bằng 3 chỉ số: Khách hàng, Tiền và Uy tín. Đừng để chỉ số nào quá thấp!","Kiếm càng nhiều Startup Coins càng tốt!"],
+   rollPrompt:"Gieo xúc xắc để di chuyển",rollHint:"Nhấn Gieo xúc xắc ở giữa bàn cờ.",
+   why:"Vì sao bạn chọn phương án này?",
+   explained:"Đã giải thích (+1 coin)",showHint:"Xem gợi ý",adv:"Ưu điểm của lựa chọn này",
+   cont:"Tiếp tục",result:"Kết quả",earned:n=>`+${n} Startup Coins`,
+   passStart:"Qua ô Khởi nghiệp: doanh thu quý mới về! +10 Tiền, +1 coin.",
+   endTitle:"Tổng kết hành trình",scen:"Hoàn thành thử thách",reason:"Giải thích lý do",bonus:"Thưởng cân bằng",events:"Cơ hội & sự kiện",total:"Tổng Startup Coins",
+   again:"Người chơi tiếp theo",
+   bal:{4:"Cân bằng xuất sắc! Cả 3 chỉ số đều từ 60 trở lên.",2:"Khá cân bằng: không chỉ số nào dưới 40.",1:"Tạm ổn, nhưng có chỉ số đang thấp.",0:"Mất cân bằng: một chỉ số đã xuống quá thấp."},
+   msgTitle:"Thông điệp cho Founder",
+   strong:["Bạn rất giỏi thu hút khách hàng","Bạn quản lý dòng tiền rất chắc tay","Bạn xây dựng uy tín thương hiệu rất tốt"],
+   low:["Khách hàng là lý do startup tồn tại. Hãy lắng nghe nhu cầu của họ và tìm cách tiếp cận thêm nhiều khách hàng hơn.","Dòng tiền là \"oxy\" của startup. Hãy cân nhắc chi phí kỹ hơn và tìm thêm nguồn thu trước khi mở rộng.","Uy tín khó xây mà dễ mất. Hãy giữ chất lượng và lời hứa với khách hàng để đi đường dài."],
+   balHead:"Startup của bạn cân bằng tuyệt vời!",balBody:"Bạn đã giữ được cả 3 yếu tố Khách hàng, Tiền và Uy tín ở mức tốt. Đây chính là bí quyết: để một startup bền vững và ổn định, founder cần cân bằng được cả 3 yếu tố này.",
+   okHead:"Startup của bạn khá vững vàng!",okBody:"Không có chỉ số nào bị bỏ lại phía sau. Hãy tiếp tục giữ sự cân bằng này, vì một startup bền vững cần cả Khách hàng, Tiền và Uy tín cùng phát triển.",
+   but:"nhưng",closing:"Nhớ nhé: để một startup bền vững và ổn định, hãy cân bằng cả 3 yếu tố Khách hàng, Tiền và Uy tín.",
+   lb:"Bảng xếp hạng hôm nay",lbEmpty:"Chưa có ai chơi. Bạn sẽ là người đầu tiên!",anon:"Founder ẩn danh",
+   kickS:"Tình huống",kickO:"Cơ hội",kickR:"Rủi ro",lesson:"Bài học"},
+ en:{roll:"Roll the dice",left:n=>`${n} roll${n===1?"":"s"} left`,done:"No rolls left",cust:"Customers",cash:"Cash",rep:"Reputation",coins:"Startup Coins",
+   newp:"New player",settings:"Prize settings",start:"Start",namePh:"Your startup's name (optional)",
+   intro:"You are the founder of a startup and must make business decisions to grow it. Let's see how many Startup Coins you can earn!",
+   welcome:"Welcome, Founder!",
+   rules:["You get 3 dice rolls.","Land on a scenario: choose A or B and briefly explain why.","Balance 3 stats: Customers, Cash and Reputation. Don't let any of them drop too low!","Earn as many Startup Coins as you can!"],
+   rollPrompt:"Roll the dice to move",rollHint:"Press Roll the dice in the middle of the board.",
+   why:"Why did you choose this option?",
+   explained:"Explained (+1 coin)",showHint:"Show hint",adv:"The advantage of this choice",
+   cont:"Continue",result:"Result",earned:n=>`+${n} Startup Coins`,
+   passStart:"You passed Start: a new quarter of revenue! +10 Cash, +1 coin.",
+   endTitle:"Your founder journey",scen:"Challenges completed",reason:"Reasoning explained",bonus:"Balance bonus",events:"Opportunities & events",total:"Total Startup Coins",
+   again:"Next player",
+   bal:{4:"Excellent balance! All 3 stats are 60 or above.",2:"Well balanced: no stat below 40.",1:"Okay, but one stat is running low.",0:"Out of balance: one stat dropped too low."},
+   msgTitle:"A message for you, Founder",
+   strong:["You're great at winning customers","You manage your cash flow really well","You've built a strong brand reputation"],
+   low:["Customers are the reason a startup exists. Listen to what they need and find ways to reach more of them.","Cash is your startup's oxygen. Watch your costs more closely and find new income before you expand.","Reputation is hard to build and easy to lose. Keep your quality and your promises to go the distance."],
+   balHead:"Your startup is beautifully balanced!",balBody:"You kept Customers, Cash and Reputation all in good shape. That's the secret: a sustainable, stable startup needs a founder who balances all three.",
+   okHead:"Your startup is on solid ground!",okBody:"None of your stats were left behind. Keep this balance going, because a sustainable startup needs Customers, Cash and Reputation to grow together.",
+   but:"but",closing:"Remember: a sustainable, stable startup needs a balance of Customers, Cash and Reputation.",
+   lb:"Today's leaderboard",lbEmpty:"No players yet. You could be the first!",anon:"Anonymous founder",
+   kickS:"Scenario",kickO:"Opportunity",kickR:"Risk",lesson:"Lesson"}
+};
+const CAT={
+ start:{vi:"Khởi nghiệp",en:"Start",subVi:"+10 Tiền khi đi qua",subEn:"+10 Cash when passed",color:"var(--mint)"},
+ comp:{vi:"Đối thủ",en:"Competitors",color:"var(--berry)"},
+ prod:{vi:"Sản phẩm",en:"Product",color:"var(--sky)"},
+ opp:{vi:"Cơ hội",en:"Opportunity",subVi:"Rút thẻ may mắn",subEn:"Draw a lucky card",color:"var(--coin)"},
+ mkt:{vi:"Marketing",en:"Marketing",color:"var(--coin)"},
+ team:{vi:"Đội ngũ",en:"Team",color:"var(--mint)"},
+ pitch:{vi:"Pitch Day",en:"Pitch Day",subVi:"Gặp nhà đầu tư",subEn:"Meet investors",color:"var(--sky)"},
+ cust:{vi:"Khách hàng",en:"Customers",color:"var(--coin)"},
+ fin:{vi:"Tài chính",en:"Finance",color:"var(--mint)"},
+ risk:{vi:"Khủng hoảng",en:"Crisis",subVi:"Rút thẻ rủi ro",subEn:"Draw a risk card",color:"var(--berry)"},
+ ops:{vi:"Vận hành",en:"Operations",color:"var(--sky)"},
+ impact:{vi:"Tác động XH",en:"Social impact",color:"var(--mint)"}
+};
+const BOARD=["start","comp","prod","opp","mkt","team","pitch","cust","fin","risk","ops","impact"];
+const POS=[[0,0],[0,1],[0,2],[0,3],[1,3],[2,3],[3,3],[3,2],[3,1],[3,0],[2,0],[1,0]];
+const CORNER={start:"start",opp:"",pitch:"pitch",risk:"risk"};
+
+// effects: [customers, cash, reputation]
+const S=[
+ {c:"comp",vi:"Startup của bạn đang mất khách vì đối thủ bán sản phẩm rẻ hơn. Bạn sẽ làm gì?",en:"Your startup is losing customers because competitors offer cheaper products. What would you do?",
+  A:{vi:"Giảm giá sản phẩm để cạnh tranh.",en:"Reduce your price to compete.",e:[15,-15,-5],adv:{vi:"Giữ chân khách hàng ngay lập tức. Phù hợp khi chi phí của bạn thấp hơn đối thủ.",en:"Keeps customers right away. Works best when your costs are lower than your competitors'."}},
+  B:{vi:"Nâng cao chất lượng sản phẩm và trải nghiệm khách hàng.",en:"Improve product quality and customer experience.",e:[-5,-10,15],adv:{vi:"Tạo lợi thế lâu dài mà đối thủ khó sao chép, và khách hàng trung thành hơn.",en:"Builds a long-term edge competitors can't easily copy, and makes customers more loyal."}}},
+ {c:"comp",vi:"Một đối thủ lớn sao chép y hệt sản phẩm best-seller của bạn.",en:"A big competitor copies your best-selling product exactly.",
+  A:{vi:"Ra mắt ngay phiên bản mới, tốt hơn.",en:"Launch a new, better version right away.",e:[10,-15,10],adv:{vi:"Bạn luôn đi trước một bước, khách hàng thấy bạn là người dẫn đầu.",en:"You stay one step ahead, and customers see you as the original."}},
+  B:{vi:"Kể câu chuyện thương hiệu để khách hàng nhận ra hàng thật.",en:"Tell your brand story so customers recognise the original.",e:[5,-5,10],adv:{vi:"Tốn ít chi phí, và câu chuyện là thứ đối thủ không sao chép được.",en:"Costs little, and your story is the one thing they can't copy."}}},
+ {c:"prod",vi:"Khách hàng liên tục xin thêm tính năng mới, nhưng đội của bạn rất nhỏ.",en:"Customers keep asking for a new feature, but your team is tiny.",
+  A:{vi:"Làm ngay tính năng mới để chiều khách.",en:"Build the new feature now.",e:[10,-10,0],adv:{vi:"Cho khách hàng thấy bạn lắng nghe và hành động nhanh.",en:"Shows customers you listen and move fast."}},
+  B:{vi:"Sửa lỗi và hoàn thiện sản phẩm hiện tại trước.",en:"Fix bugs and polish the current product first.",e:[-5,0,15],adv:{vi:"Sản phẩm ổn định hơn, ít lời phàn nàn và uy tín tăng.",en:"A more stable product means fewer complaints and a stronger reputation."}}},
+ {c:"prod",vi:"Nhà cung cấp gợi ý dùng nguyên liệu rẻ hơn để tăng lợi nhuận 20%.",en:"A supplier suggests cheaper ingredients to raise profit by 20%.",
+  A:{vi:"Đồng ý, lợi nhuận là ưu tiên.",en:"Agree, profit comes first.",e:[0,15,-15],adv:{vi:"Có thêm tiền mặt ngay để duy trì và phát triển.",en:"More cash right now to keep the business running and growing."}},
+  B:{vi:"Từ chối, giữ nguyên chất lượng.",en:"Say no and keep the quality.",e:[5,-5,10],adv:{vi:"Giữ lời hứa với khách hàng, và uy tín là tài sản khó mua lại.",en:"You keep your promise to customers, and trust is hard to buy back."}}},
+ {c:"mkt",vi:"Bạn có 20 triệu cho marketing tháng này.",en:"You have 20 million VND for marketing this month.",
+  A:{vi:"Thuê một KOL nổi tiếng làm 1 video viral.",en:"Hire a famous KOL for one viral video.",e:[20,-15,0],adv:{vi:"Tiếp cận rất nhiều người chỉ trong vài ngày.",en:"Reaches a huge audience in just a few days."}},
+  B:{vi:"Xây cộng đồng với các bạn sinh viên đại sứ.",en:"Build a community with student ambassadors.",e:[10,-5,10],adv:{vi:"Chi phí thấp, khách hàng đến từ người thật nên tin tưởng hơn.",en:"Low cost, and customers trust real people more."}}},
+ {c:"mkt",vi:"Một trend đang viral trên TikTok nhưng không liên quan đến thương hiệu của bạn.",en:"A trend is going viral on TikTok but has nothing to do with your brand.",
+  A:{vi:"Bắt trend ngay để kéo lượt xem.",en:"Jump on the trend for views.",e:[15,0,-5],adv:{vi:"Tăng độ nhận diện nhanh với chi phí gần như bằng 0.",en:"Boosts awareness fast at almost zero cost."}},
+  B:{vi:"Giữ đúng hình ảnh thương hiệu, không bắt trend.",en:"Stay on brand and skip the trend.",e:[0,0,10],adv:{vi:"Thương hiệu nhất quán, khách hàng nhớ bạn rõ ràng hơn.",en:"A consistent brand that customers remember clearly."}}},
+ {c:"team",vi:"Co-founder của bạn muốn nghỉ để đi làm công việc ổn định.",en:"Your co-founder wants to quit for a stable job.",
+  A:{vi:"Chia thêm cổ phần để giữ chân co-founder.",en:"Offer more equity to keep them.",e:[0,-5,10],adv:{vi:"Giữ được người hiểu startup nhất, đội ngũ gắn bó hơn.",en:"You keep the person who knows the startup best, and the team stays united."}},
+  B:{vi:"Để co-founder đi và thuê freelancer thay thế.",en:"Let them go and hire a freelancer.",e:[-5,10,-5],adv:{vi:"Linh hoạt chi phí và giữ nguyên tỷ lệ sở hữu của bạn.",en:"Flexible costs, and you keep your ownership share."}}},
+ {c:"team",vi:"Cả đội kiệt sức ngay trước buổi ra mắt sản phẩm lớn.",en:"The team is burnt out right before a big launch.",
+  A:{vi:"Lùi ngày ra mắt 2 tuần để cả đội nghỉ ngơi.",en:"Delay the launch by 2 weeks so everyone can rest.",e:[-5,-5,10],adv:{vi:"Đội ngũ khoẻ thì sản phẩm tốt hơn, ít sai sót khi ra mắt.",en:"A rested team ships a better product with fewer mistakes."}},
+  B:{vi:"Cố gắng ra mắt đúng hạn.",en:"Push through and launch on time.",e:[10,5,-10],adv:{vi:"Đúng hẹn với khách hàng và bắt kịp thời điểm thị trường.",en:"You keep your promise to customers and catch the market window."}}},
+ {c:"pitch",vi:"Bạn có 3 phút pitch trước nhà đầu tư. Bạn tập trung vào điều gì?",en:"You have 3 minutes to pitch to investors. What do you focus on?",
+  A:{vi:"Số liệu: doanh thu, tăng trưởng, số khách hàng.",en:"Numbers: revenue, growth and customers.",e:[0,15,5],adv:{vi:"Nhà đầu tư thấy ngay tiềm năng sinh lời của bạn.",en:"Investors see your earning potential straight away."}},
+  B:{vi:"Câu chuyện founder và sứ mệnh của startup.",en:"Your founder story and mission.",e:[5,5,15],adv:{vi:"Tạo kết nối cảm xúc, dễ được nhớ đến hơn giữa nhiều startup.",en:"Creates an emotional connection, so you stand out among many startups."}}},
+ {c:"pitch",vi:"Nhà đầu tư đề nghị 500 triệu đổi lấy 30% cổ phần.",en:"An investor offers 500 million VND for 30% of your startup.",
+  A:{vi:"Nhận vốn để tăng tốc.",en:"Take the money and scale faster.",e:[5,25,0],adv:{vi:"Có vốn để mở rộng nhanh, kèm kinh nghiệm và mạng lưới của nhà đầu tư.",en:"Capital to grow fast, plus the investor's experience and network."}},
+  B:{vi:"Từ chối, tự phát triển bằng doanh thu.",en:"Decline and grow from your own revenue.",e:[0,-5,10],adv:{vi:"Giữ toàn quyền quyết định và quyền sở hữu startup.",en:"You keep full control and ownership of your startup."}}},
+ {c:"cust",vi:"Một bài review tiêu cực về startup của bạn đang lan truyền.",en:"A negative review about your startup is going viral.",
+  A:{vi:"Phản hồi công khai, xin lỗi và đền bù.",en:"Respond publicly, apologise and compensate.",e:[5,-10,15],adv:{vi:"Mọi người thấy bạn có trách nhiệm, biến khủng hoảng thành điểm cộng.",en:"People see you take responsibility, turning a crisis into a plus."}},
+  B:{vi:"Liên hệ riêng với khách hàng để giải quyết.",en:"Contact the customer privately to fix it.",e:[0,-5,5],adv:{vi:"Giải quyết tận gốc mà không thu hút thêm sự chú ý.",en:"Solves the problem without drawing more attention."}}},
+ {c:"cust",vi:"Ngày thường quán vắng khách, cuối tuần lại quá đông.",en:"Weekdays are quiet, but weekends are packed.",
+  A:{vi:"Giảm giá cho sinh viên vào ngày thường.",en:"Offer student discounts on weekdays.",e:[15,-10,0],adv:{vi:"Kéo khách ngay vào giờ thấp điểm, tận dụng công suất.",en:"Brings in customers during quiet hours and uses spare capacity."}},
+  B:{vi:"Ra mắt thẻ thành viên tích điểm.",en:"Launch a loyalty card.",e:[5,0,10],adv:{vi:"Khách quay lại đều đặn và gắn bó lâu dài với thương hiệu.",en:"Customers come back regularly and stay loyal."}}},
+ {c:"fin",vi:"Tiền mặt chỉ đủ dùng trong 3 tháng nữa.",en:"Your cash will only last 3 more months.",
+  A:{vi:"Cắt giảm chi phí marketing.",en:"Cut the marketing budget.",e:[-10,15,0],adv:{vi:"Kéo dài thời gian sống sót ngay lập tức, an toàn hơn.",en:"Buys time immediately and lowers your risk."}},
+  B:{vi:"Bán trước (pre-order) sản phẩm mới cho fan.",en:"Pre-sell a new product to your fans.",e:[5,10,-5],adv:{vi:"Có tiền mà vẫn tăng trưởng, đồng thời kiểm chứng nhu cầu thật.",en:"Raises cash while still growing, and tests real demand."}}},
+ {c:"fin",vi:"Một chuỗi cửa hàng lớn muốn bán sản phẩm của bạn nhưng lấy 40% lợi nhuận.",en:"A big retail chain wants to sell your product but takes a 40% margin.",
+  A:{vi:"Đồng ý hợp tác.",en:"Accept the deal.",e:[20,-5,5],adv:{vi:"Tiếp cận lượng lớn khách hàng mới mà bạn không tự làm được.",en:"Reaches many new customers you couldn't reach alone."}},
+  B:{vi:"Từ chối, tập trung kênh bán của riêng mình.",en:"Decline and focus on your own channels.",e:[-5,10,0],adv:{vi:"Giữ biên lợi nhuận và kiểm soát trải nghiệm thương hiệu.",en:"Keeps your margin and full control of the brand experience."}}},
+ {c:"ops",vi:"Đơn hàng tăng gấp đôi, giao hàng bắt đầu bị trễ.",en:"Orders doubled and deliveries are running late.",
+  A:{vi:"Tuyển thêm người ngay.",en:"Hire more staff right away.",e:[10,-15,5],adv:{vi:"Phục vụ được nhu cầu tăng, không bỏ lỡ doanh thu.",en:"Meets the demand so you don't miss out on sales."}},
+  B:{vi:"Tạm dừng nhận đơn mới để sửa quy trình.",en:"Pause new orders to fix the process.",e:[-10,-5,15],adv:{vi:"Quy trình chuẩn giúp bạn tăng trưởng bền vững về sau.",en:"A solid process lets you grow sustainably later."}}},
+ {c:"impact",vi:"Bao bì thân thiện môi trường sẽ làm chi phí tăng 20%.",en:"Eco-friendly packaging would raise your costs by 20%.",
+  A:{vi:"Chuyển sang bao bì xanh.",en:"Switch to eco-friendly packaging.",e:[5,-10,15],adv:{vi:"Thu hút khách hàng trẻ quan tâm môi trường và tạo tác động tích cực.",en:"Attracts young, eco-conscious customers and creates positive impact."}},
+  B:{vi:"Giữ bao bì hiện tại.",en:"Keep your current packaging.",e:[0,5,-5],adv:{vi:"Giữ giá bán ổn định cho khách hàng.",en:"Keeps your prices stable for customers."}}},
+ {c:"impact",vi:"Một nhóm cộng đồng mời bạn tài trợ sản phẩm cho sự kiện thiện nguyện.",en:"A community group asks you to sponsor products for a charity event.",
+  A:{vi:"Đồng ý tài trợ.",en:"Agree to sponsor.",e:[5,-10,15],adv:{vi:"Lan toả hình ảnh tử tế, và cộng đồng nhớ đến bạn.",en:"Shows your brand cares, and the community remembers you."}},
+  B:{vi:"Từ chối lịch sự, hẹn hợp tác dịp khác.",en:"Politely decline and offer to help next time.",e:[0,5,0],adv:{vi:"Giữ nguồn lực cho giai đoạn khó khăn hiện tại.",en:"Saves resources for the current tough stage."}}}
+];
+const OPP=[
+ {vi:"RISE chọn startup của bạn lên Showcase!",en:"RISE features your startup in its Showcase!",e:[5,0,15],coin:1,l:{vi:"Truyền thông miễn phí (earned media) rất có giá trị.",en:"Free, earned media is worth a lot."}},
+ {vi:"Thắng giải cuộc thi khởi nghiệp sinh viên.",en:"You win a student startup competition.",e:[0,15,5],coin:1,l:{vi:"Cuộc thi là cách tốt để có vốn và mentor.",en:"Competitions are a great way to get funding and mentors."}},
+ {vi:"Khách hàng giới thiệu bạn bè đến mua.",en:"Customers bring their friends along.",e:[15,5,0],coin:0,l:{vi:"Khách hàng hài lòng là kênh marketing mạnh nhất.",en:"Happy customers are your best marketing channel."}},
+ {vi:"Một tờ báo lớn viết bài về startup của bạn.",en:"A major newspaper writes about your startup.",e:[10,0,10],coin:1,l:{vi:"Câu chuyện hay giúp bạn được chú ý.",en:"A good story gets you noticed."}}
+];
+const RISK=[
+ {vi:"Máy móc hỏng ngay giờ cao điểm.",en:"Your equipment breaks down at peak hour.",e:[-5,-10,0],l:{vi:"Luôn có quỹ dự phòng cho sự cố.",en:"Always keep an emergency fund."}},
+ {vi:"Đối thủ mới mở cửa ngay bên cạnh.",en:"A new competitor opens right next door.",e:[-10,0,0],l:{vi:"Điểm khác biệt giúp bạn giữ khách.",en:"A clear difference keeps your customers."}},
+ {vi:"Nhà cung cấp tăng giá 20%.",en:"Your supplier raises prices by 20%.",e:[0,-10,0],l:{vi:"Đừng phụ thuộc vào một nhà cung cấp duy nhất.",en:"Don't rely on a single supplier."}},
+ {vi:"Một thành viên đăng nhầm bài lên fanpage.",en:"A team member posts the wrong thing on your fanpage.",e:[0,0,-10],l:{vi:"Cần quy trình duyệt nội dung rõ ràng.",en:"Set up a clear content approval process."}}
+];
+
+/* ---------- state ---------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let lang=store.get("sm_lang","vi");
+let st;
+function fresh(name){return{name:name||"",pos:0,rolls:3,stats:[50,50,50],coins:0,parts:{scen:0,reason:0,events:0},used:[],phase:"intro",busy:false}}
+st=fresh();
+st.phase="intro";
+
+const $=id=>document.getElementById(id);
+const T=()=>UI[lang];
+const L=o=>o[lang]||o.vi;
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+/* ---------- board ---------- */
+const boardEl=$("board");
+function buildBoard(){
+  boardEl.querySelectorAll(".cell").forEach(n=>n.remove());
+  BOARD.forEach((k,i)=>{
+    const c=CAT[k],[r,col]=POS[i];
+    const d=document.createElement("div");
+    d.className="cell"+(k in CORNER?" corner "+CORNER[k]:"");
+    d.style.gridRow=r+1;d.style.gridColumn=col+1;d.dataset.i=i;
+    const sub=k in CORNER?(lang==="vi"?c.subVi:c.subEn):(lang==="vi"?"Tình huống":"Scenario");
+    d.innerHTML=(k in CORNER?"":`<span class="stripe" style="background:${c.color}"></span>`)+
+      `<span class="num">${String(i).padStart(2,"0")}</span><span class="nm">${esc(L(c))}</span><span class="sub">${esc(sub)}</span>`;
+    boardEl.insertBefore(d,boardEl.querySelector(".center"));
+  });
+  placeToken();
+}
+function placeToken(){
+  const cell=boardEl.querySelector(`.cell[data-i="${st.pos}"]`);if(!cell)return;
+  const tk=$("token");
+  tk.style.left=(cell.offsetLeft+cell.offsetWidth-tk.offsetWidth-8)+"px";
+  tk.style.top=(cell.offsetTop+8)+"px";
+}
+window.addEventListener("resize",placeToken);
+
+/* ---------- dice ---------- */
+const FACES={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function showFace(n){[...$("dice").children].forEach((p,i)=>p.classList.toggle("on",FACES[n].includes(i)));$("dice").setAttribute("aria-label",String(n))}
+showFace(1);
+
+/* ---------- stats ---------- */
+const COLORS=["var(--coin)","var(--mint)","var(--sky)"];
+function renderMeters(deltas){
+  const names=[T().cust,T().cash,T().rep];
+  $("meters").innerHTML=st.stats.map((v,i)=>{
+    const d=deltas&&deltas[i]?`<span class="delta ${deltas[i]>0?"up":"down"}">${deltas[i]>0?"+":""}${deltas[i]}</span>`:"";
+    return `<div class="meter"><div class="row"><span>${names[i]}${d}</span><span>${v}/100</span></div><div class="bar"><b style="width:${v}%;background:${COLORS[i]}"></b></div></div>`;
+  }).join("");
+}
+function applyEff(e){const d=e.map((x,i)=>{const nv=Math.max(0,Math.min(100,st.stats[i]+x));const real=nv-st.stats[i];st.stats[i]=nv;return real});renderMeters(d);return d}
+function addCoins(n,key){if(!n)return;st.coins+=n;if(key)st.parts[key]+=n;const c=$("coinNum");c.textContent=st.coins;c.classList.remove("pop");void c.offsetWidth;c.classList.add("pop")}
+function effChips(e){const names=[T().cust,T().cash,T().rep];return `<div class="effects">${e.map((x,i)=>x?`<span class="eff ${x>0?"up":"down"}">${names[i]} ${x>0?"+":""}${x}</span>`:"").join("")}</div>`}
+
+/* ---------- roll + move ---------- */
+function renderRolls(){
+  [...$("rolls").children].forEach((s,i)=>s.classList.toggle("used",i>=st.rolls));
+  $("rollInfo").textContent=st.rolls>0?T().left(st.rolls):T().done;
+  $("rollBtn").textContent=T().roll;
+  $("rollBtn").disabled=st.busy||st.phase!=="roll"||st.rolls<=0;
+}
+$("rollBtn").addEventListener("click",()=>{
+  if(st.busy||st.phase!=="roll"||st.rolls<=0)return;
+  st.busy=true;renderRolls();
+  const dice=$("dice");dice.classList.add("roll");
+  let t=0;const iv=setInterval(()=>{showFace(1+Math.floor(Math.random()*6));t++;},80);
+  setTimeout(()=>{
+    clearInterval(iv);dice.classList.remove("roll");
+    const n=1+Math.floor(Math.random()*6);showFace(n);
+    st.rolls--;renderRolls();move(n);
+  },700);
+});
+function move(n){
+  let k=0,passed=false;
+  const step=()=>{
+    st.pos=(st.pos+1)%BOARD.length;if(st.pos===0)passed=true;placeToken();k++;
+    if(k<n)setTimeout(step,230);
+    else{
+      const cell=boardEl.querySelector(`.cell[data-i="${st.pos}"]`);cell.classList.remove("hit");void cell.offsetWidth;cell.classList.add("hit");
+      if(passed){applyEff([0,10,0]);addCoins(1,"events")}
+      setTimeout(()=>land(passed),280);
+    }
+  };
+  setTimeout(step,150);
+}
+function land(passed){
+  st.busy=false;
+  const k=BOARD[st.pos];
+  const pre=passed?`<div class="callout"><b>${lang==="vi"?"Khởi nghiệp":"Start"}</b>${T().passStart}</div>`:"";
+  if(k==="opp"||k==="risk"){
+    const deck=k==="opp"?OPP:RISK;const cd=deck[Math.floor(Math.random()*deck.length)];
+    st.phase="event";
+    const d=applyEff(cd.e);if(cd.coin)addCoins(cd.coin,"events");
+    card(`<span class="kicker" style="background:${k==="opp"?"var(--coin)":"var(--berry)"}">${k==="opp"?T().kickO:T().kickR}</span>
+      <h2>${esc(L(cd))}</h2>${effChips(d)}${cd.coin?`<div class="effects"><span class="eff up">${T().earned(cd.coin)}</span></div>`:""}
+      <div class="callout"><b>${T().lesson}</b>${esc(L(cd.l))}</div>${pre}
+      <div class="actions"><button class="btn primary" id="nextBtn">${T().cont}</button></div>`);
+    $("nextBtn").onclick=next;$("nextBtn").focus();
+    return;
+  }
+  if(k==="start"){st.phase="event";card(`<span class="kicker" style="background:var(--mint)">${esc(L(CAT.start))}</span><h2>${T().passStart}</h2><div class="actions"><button class="btn primary" id="nextBtn">${T().cont}</button></div>`);$("nextBtn").onclick=next;$("nextBtn").focus();return}
+  // scenario
+  let pool=S.map((s,i)=>i).filter(i=>S[i].c===k&&!st.used.includes(i));
+  if(!pool.length)pool=S.map((s,i)=>i).filter(i=>!st.used.includes(i));
+  const idx=pool[Math.floor(Math.random()*pool.length)];st.used.push(idx);
+  st.phase="choose";st.cur=idx;
+  renderScenario(pre);
+}
+function renderScenario(pre){
+  const s=S[st.cur],c=CAT[s.c];
+  card(`<span class="kicker" style="background:${c.color}">${T().kickS} · ${esc(L(c))}</span>
+    <h2>${esc(L(s))}</h2>
+    <div class="opts">
+      <button class="opt" data-k="A"><span class="k">A</span><span>${esc(L(s.A))}</span></button>
+      <button class="opt" data-k="B"><span class="k">B</span><span>${esc(L(s.B))}</span></button>
+    </div><div id="after"></div>${pre||""}`);
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(b.dataset.k));
+}
+function choose(key){
+  if(st.phase!=="choose")return;st.phase="reason";
+  document.querySelectorAll(".opt").forEach(b=>{b.disabled=true;if(b.dataset.k===key)b.classList.add("chosen")});
+  st.choice=key;
+  $("after").innerHTML=`<div class="callout"><b>${T().why}</b></div>
+    <div class="actions"><button class="btn orange" id="expBtn">${T().explained}</button><button class="btn" id="hintBtn">${T().showHint}</button></div><div id="hintBox"></div>`;
+  $("expBtn").onclick=()=>resolve(true);
+  $("hintBtn").onclick=()=>{const o=S[st.cur][key];$("hintBox").innerHTML=`<div class="callout"><b>${T().adv}</b>${esc(L(o.adv))}</div>`;$("hintBtn").remove();
+    const a=document.querySelector("#after .actions");const b=document.createElement("button");b.className="btn primary";b.textContent=T().cont;b.onclick=()=>resolve(false);a.appendChild(b)};
+}
+function resolve(explained){
+  if(st.phase!=="reason")return;st.phase="event";
+  const o=S[st.cur][st.choice];
+  const d=applyEff(o.e);
+  addCoins(2,"scen");if(explained)addCoins(1,"reason");
+  const got=2+(explained?1:0);
+  $("after").innerHTML=`<div class="callout"><b>${T().result}</b>${esc(L(o.adv))}</div>${effChips(d)}
+    <div class="effects"><span class="eff up">${T().earned(got)}</span></div>
+    <div class="actions"><button class="btn primary" id="nextBtn">${T().cont}</button></div>`;
+  $("nextBtn").onclick=next;$("nextBtn").focus();
+}
+function next(){
+  if(st.rolls>0){st.phase="roll";rollCard();renderRolls();$("rollBtn").focus()}
+  else finish();
+}
+
+/* ---------- cards ---------- */
+function card(html){$("card").innerHTML=html}
+function introCard(){
+  st.phase="intro";
+  card(`<span class="kicker" style="background:var(--ink)">${lang==="vi"?"Luật chơi":"How to play"}</span>
+    <h2>${T().welcome}</h2>
+    <p class="quote">${T().intro}</p>
+    <form class="namein" id="nameForm"><label for="nameIn" class="sr" hidden>name</label>
+      <input id="nameIn" maxlength="28" placeholder="${T().namePh}" value="${esc(st.name)}">
+      <button class="btn orange" type="submit">${T().start}</button></form>
+    <ul class="rules">${T().rules.map(r=>`<li>${r}</li>`).join("")}</ul>`);
+  $("nameForm").addEventListener("submit",e=>{e.preventDefault();st.name=$("nameIn").value.trim();st.phase="roll";rollCard();renderRolls();$("rollBtn").focus()});
+  renderRolls();
+}
+function rollCard(){
+  card(`<span class="kicker" style="background:var(--ink)">${st.name?esc(st.name):T().coins}</span>
+    <h2>${T().rollPrompt}</h2><p>${T().rollHint}</p>
+    <ul class="rules">${T().rules.slice(1,3).map(r=>`<li>${r}</li>`).join("")}</ul>`);
+}
+function balanceBonus(){const m=Math.min(...st.stats);return m>=60?4:m>=40?2:m>=25?1:0}
+function message(){
+  const v=st.stats,mn=Math.min(...v),mx=Math.max(...v);
+  const lo=v.indexOf(mn),hi=v.indexOf(mx);
+  if(mn>=60&&mx-mn<=25)return `<p class="quote">${T().balHead}</p><p>${T().balBody}</p>`;
+  if(mn>=40&&mx-mn<=20)return `<p class="quote">${T().okHead}</p><p>${T().okBody}</p>`;
+  const names=[T().cust,T().cash,T().rep];
+  const lowLine=lang==="vi"?`${names[lo]} đang là điểm yếu (${mn}/100).`:`${names[lo]} is your weak spot (${mn}/100).`;
+  return `<p class="quote">${mx-mn>=15?T().strong[hi]+" ("+mx+"/100), "+T().but+" "+lowLine.charAt(0).toLowerCase()+lowLine.slice(1):lowLine}</p>
+    <p>${T().low[lo]}</p><div class="callout">${T().closing}</div>`;
+}
+function finish(){
+  st.phase="end";renderRolls();
+  const b=balanceBonus();addCoins(b,null);
+  const lb=store.get("sm_lb",[]);lb.push({n:st.name||"",c:st.coins,t:Date.now()});lb.sort((a,b)=>b.c-a.c||a.t-b.t);store.set("sm_lb",lb.slice(0,50));
+  card(`<span class="kicker" style="background:var(--coin)">${st.name?esc(st.name):T().coins}</span>
+    <h2>${T().msgTitle}</h2>
+    ${message()}
+    <div class="prize"><small>${T().total}</small><strong>${st.coins} Startup Coins</strong></div>
+    <div class="actions"><button class="btn primary" id="againBtn">${T().again}</button></div>`);
+  $("againBtn").onclick=reset;$("againBtn").focus();
+  renderLeader();
+}
+function reset(){st=fresh();$("coinNum").textContent="0";renderMeters();placeToken();showFace(1);introCard()}
+
+/* ---------- leaderboard + settings ---------- */
+function renderLeader(){
+  const lb=store.get("sm_lb",[]);
+  const today=new Date().toDateString();
+  const rows=lb.filter(r=>new Date(r.t).toDateString()===today).slice(0,5);
+  $("leader").innerHTML=`<h3>${T().lb}</h3>`+(rows.length?`<ol>${rows.map((r,i)=>`<li><span>${i+1}. ${esc(r.n||T().anon)}</span><span>${r.c} coins</span></li>`).join("")}</ol>`:`<p class="log">${T().lbEmpty}</p>`);
+}
+$("newBtn").onclick=reset;
+
+/* ---------- language ---------- */
+function setLang(l){
+  lang=l;store.set("sm_lang",l);
+  $("langVi").setAttribute("aria-pressed",String(l==="vi"));$("langEn").setAttribute("aria-pressed",String(l==="en"));
+  $("newBtn").textContent=T().newp;$("coinLbl").textContent=T().coins;
+  document.documentElement.lang=l;
+  buildBoard();renderMeters();renderRolls();renderLeader();
+  if(st.phase==="intro")introCard();else if(st.phase==="roll")rollCard();else if(st.phase==="choose")renderScenario();else if(st.phase==="end"){/* keep */}
+}
+$("langVi").onclick=()=>setLang("vi");$("langEn").onclick=()=>setLang("en");
+
+/* ---------- boot ---------- */
+setLang(lang);
+introCard();
+requestAnimationFrame(placeToken);
+document.fonts&&document.fonts.ready.then(placeToken);
+})();
+</script>
+</body>
+</html>
